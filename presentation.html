@@ -1,0 +1,1329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG & Chunking Strategies - Enterprise AI Presentation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            overflow: hidden;
+        }
+
+        .presentation-container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .slide {
+            width: 90vw;
+            max-width: 1200px;
+            height: 90vh;
+            max-height: 675px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            display: none;
+            padding: 60px;
+            position: relative;
+            overflow: auto;
+        }
+
+        .slide.active {
+            display: block;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(100px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .slide-number {
+            position: absolute;
+            bottom: 20px;
+            right: 40px;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .navigation {
+            position: fixed;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+            z-index: 1000;
+        }
+
+        .nav-button {
+            background: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s;
+        }
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .nav-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        h1 {
+            color: #0078D4;
+            font-size: 48px;
+            margin-bottom: 20px;
+            line-height: 1.2;
+        }
+
+        h2 {
+            color: #5E2D91;
+            font-size: 36px;
+            margin-bottom: 30px;
+            border-bottom: 3px solid #0078D4;
+            padding-bottom: 10px;
+        }
+
+        h3 {
+            color: #0078D4;
+            font-size: 28px;
+            margin-top: 20px;
+            margin-bottom: 15px;
+        }
+
+        p {
+            font-size: 20px;
+            line-height: 1.6;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        ul, ol {
+            margin-left: 30px;
+            margin-bottom: 20px;
+        }
+
+        li {
+            font-size: 20px;
+            line-height: 1.8;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .highlight {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin: 20px 0;
+            font-size: 24px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin: 20px 0;
+        }
+
+        .column {
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .column.success {
+            background: #e8f5e9;
+            border-left: 5px solid #4caf50;
+        }
+
+        .column.warning {
+            background: #fff3e0;
+            border-left: 5px solid #ff9800;
+        }
+
+        .column.error {
+            background: #ffebee;
+            border-left: 5px solid #f44336;
+        }
+
+        .column.info {
+            background: #e3f2fd;
+            border-left: 5px solid #2196f3;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 16px;
+        }
+
+        th {
+            background: #0078D4;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        tr:nth-child(even) {
+            background: #f5f5f5;
+        }
+
+        .code-block {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+
+        .flowchart {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: monospace;
+            font-size: 16px;
+            margin: 20px 0;
+            white-space: pre;
+            overflow-x: auto;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+        }
+
+        .card h3 {
+            color: white;
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+
+        .card p {
+            color: white;
+            font-size: 16px;
+        }
+
+        .subtitle {
+            font-size: 24px;
+            color: #666;
+            margin-bottom: 40px;
+        }
+
+        .icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            margin: 5px;
+        }
+
+        .badge.success {
+            background: #4caf50;
+            color: white;
+        }
+
+        .badge.warning {
+            background: #ff9800;
+            color: white;
+        }
+
+        .badge.info {
+            background: #2196f3;
+            color: white;
+        }
+
+        .title-slide {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            height: 100%;
+        }
+
+        .title-slide h1 {
+            font-size: 56px;
+            margin-bottom: 20px;
+        }
+
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 4px;
+            background: #0078D4;
+            transition: width 0.3s;
+            z-index: 1001;
+        }
+
+        .speaker-notes {
+            display: none;
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            max-width: 800px;
+            font-size: 14px;
+            z-index: 999;
+        }
+
+        .speaker-notes.visible {
+            display: block;
+        }
+
+        .toggle-notes {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 14px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+        }
+
+        .comparison-table {
+            font-size: 14px;
+        }
+
+        .star-rating {
+            color: #ffd700;
+        }
+    </style>
+</head>
+<body>
+    <div class="progress-bar" id="progressBar"></div>
+    <button class="toggle-notes" onclick="toggleNotes()">Toggle Speaker Notes</button>
+
+    <div class="presentation-container">
+        <!-- Slide 1: Title -->
+        <div class="slide active" data-notes="Welcome! Today we'll explore how RAG is transforming enterprise AI by combining the power of information retrieval with generative AI models.">
+            <div class="title-slide">
+                <h1>Retrieval-Augmented Generation (RAG)</h1>
+                <h1>& Chunking Strategies</h1>
+                <p class="subtitle">Building Accurate, Scalable AI Systems with Azure OpenAI, Claude & AI Foundry</p>
+                <p style="margin-top: 40px; font-size: 18px; color: #666;">December 2025</p>
+            </div>
+            <div class="slide-number">1 / 30</div>
+        </div>
+
+        <!-- Slide 2: Agenda -->
+        <div class="slide" data-notes="We'll start with fundamentals and progressively explore advanced techniques, practical implementation, and real-world best practices.">
+            <h2>What We'll Cover Today</h2>
+            <ol style="font-size: 24px;">
+                <li>Understanding RAG: The Foundation</li>
+                <li>Why RAG Matters for Enterprises in 2025</li>
+                <li>RAG Architecture & Components</li>
+                <li>Latest RAG Techniques (Self-RAG, GraphRAG, Agentic RAG)</li>
+                <li>Chunking Strategies Deep Dive</li>
+                <li>Azure Ecosystem Integration</li>
+                <li>Best Practices & Implementation Roadmap</li>
+            </ol>
+            <div class="slide-number">2 / 30</div>
+        </div>
+
+        <!-- Slide 3: What is RAG? -->
+        <div class="slide" data-notes="Think of RAG as giving your AI assistant access to a library. Instead of relying solely on what it learned during training, it can look up current information to answer your questions accurately.">
+            <h2>What is RAG?</h2>
+            <div class="highlight">
+                RAG = Giving AI a library card instead of just relying on memory
+            </div>
+            <h3>How It Works</h3>
+            <div class="flowchart">User Question → Search Documents → Retrieve Context → AI Generates Answer</div>
+            <h3>Key Concept</h3>
+            <ul>
+                <li>Combines information retrieval with generative AI</li>
+                <li>AI looks up current, relevant information before responding</li>
+                <li>Grounds responses in real, verifiable sources</li>
+            </ul>
+            <div class="slide-number">3 / 30</div>
+        </div>
+
+        <!-- Slide 4: The Problem RAG Solves -->
+        <div class="slide" data-notes="Traditional LLMs have significant limitations. RAG addresses all of these by grounding AI responses in retrievable, current documents.">
+            <h2>Why Traditional LLMs Fall Short</h2>
+            <div class="two-column">
+                <div class="column error">
+                    <h3>❌ Traditional LLMs</h3>
+                    <ul>
+                        <li>Knowledge cutoff dates</li>
+                        <li>Hallucinations (making up facts)</li>
+                        <li>No source attribution</li>
+                        <li>Can't access proprietary data</li>
+                        <li>Expensive to update</li>
+                    </ul>
+                </div>
+                <div class="column success">
+                    <h3>✅ RAG-Enhanced LLMs</h3>
+                    <ul>
+                        <li>Always current information</li>
+                        <li>Fact-checked against sources</li>
+                        <li>Clear citations</li>
+                        <li>Uses your company data</li>
+                        <li>Update by adding documents</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="slide-number">4 / 30</div>
+        </div>
+
+        <!-- Slide 5: Why RAG Matters in 2025 -->
+        <div class="slide" data-notes="In 2025, enterprises need AI that's accurate, current, cost-effective, trustworthy, and fast to deploy. RAG delivers on all fronts.">
+            <h2>Why RAG Matters in 2025</h2>
+            <div class="grid-3">
+                <div class="card">
+                    <div class="icon">📊</div>
+                    <h3>Accuracy</h3>
+                    <p>Responses based on verified data. Reduced hallucinations by 70-90%</p>
+                </div>
+                <div class="card">
+                    <div class="icon">📈</div>
+                    <h3>Current</h3>
+                    <p>Access to latest updates. Real-time knowledge integration</p>
+                </div>
+                <div class="card">
+                    <div class="icon">💰</div>
+                    <h3>Cost-Effective</h3>
+                    <p>No expensive model retraining. Use existing models + your data</p>
+                </div>
+                <div class="card">
+                    <div class="icon">🔒</div>
+                    <h3>Trustworthy</h3>
+                    <p>Source attribution for every claim. Audit-friendly AI</p>
+                </div>
+                <div class="card">
+                    <div class="icon">⚡</div>
+                    <h3>Fast Deployment</h3>
+                    <p>Add documents, not months of training. Rapid iteration</p>
+                </div>
+                <div class="card">
+                    <div class="icon">🎯</div>
+                    <h3>Enterprise Ready</h3>
+                    <p>Security, compliance, and governance built-in</p>
+                </div>
+            </div>
+            <div class="slide-number">5 / 30</div>
+        </div>
+
+        <!-- Slide 6: RAG Architecture -->
+        <div class="slide" data-notes="RAG has two phases: offline indexing where we prepare documents, and online querying where we answer questions using retrieved context.">
+            <h2>The RAG Pipeline: Three Core Stages</h2>
+            <div class="flowchart">┌──────────────────────────────────────────────────┐
+│         OFFLINE: Document Indexing           │
+│  Documents → Chunking → Embeddings           │
+│           → Vector Database                  │
+└──────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────┐
+│          ONLINE: Query Processing            │
+│  User Query → Search → Retrieve Top K        │
+│           → Generate Answer                  │
+└──────────────────────────────────────────────────┘</div>
+            <h3>Key Components</h3>
+            <ol>
+                <li><strong>Chunking</strong>: Break documents into pieces</li>
+                <li><strong>Embedding</strong>: Convert to vectors</li>
+                <li><strong>Retrieval</strong>: Find relevant chunks</li>
+                <li><strong>Generation</strong>: Create informed response</li>
+            </ol>
+            <div class="slide-number">6 / 30</div>
+        </div>
+
+        <!-- Slide 7: Latest RAG Techniques -->
+        <div class="slide" data-notes="RAG has evolved significantly. Today's techniques are far more sophisticated than simple document retrieval.">
+            <h2>Evolution of RAG: Beyond the Basics</h2>
+            <table>
+                <tr>
+                    <th>Year</th>
+                    <th>Approach</th>
+                    <th>Key Features</th>
+                </tr>
+                <tr>
+                    <td><strong>2023</strong></td>
+                    <td>Traditional RAG</td>
+                    <td>Simple retrieve-and-generate, one-shot retrieval</td>
+                </tr>
+                <tr>
+                    <td><strong>2024</strong></td>
+                    <td>Enhanced RAG</td>
+                    <td>Query expansion, re-ranking, hybrid search</td>
+                </tr>
+                <tr>
+                    <td><strong>2025</strong></td>
+                    <td>Next-Gen RAG</td>
+                    <td>Self-RAG, Agentic RAG, GraphRAG, Long RAG</td>
+                </tr>
+            </table>
+            <div class="highlight" style="margin-top: 30px;">
+                2025: The Year of Intelligent, Self-Improving RAG Systems
+            </div>
+            <div class="slide-number">7 / 30</div>
+        </div>
+
+        <!-- Slide 8: Self-RAG -->
+        <div class="slide" data-notes="Self-RAG incorporates a self-checking mechanism. The AI evaluates whether it needs more information and critiques its own outputs for quality.">
+            <h2>Self-RAG: AI That Checks Its Own Work</h2>
+            <div class="flowchart">Query → Retrieve → Generate → Self-Critique
+                   ↑                           ↓
+                   └──── Retrieve Again? ──────┘</div>
+            <h3>Key Features</h3>
+            <ul>
+                <li>✅ Dynamically decides when to retrieve</li>
+                <li>✅ Evaluates relevance of retrieved docs</li>
+                <li>✅ Self-critiques generated responses</li>
+                <li>✅ Ensures evidence-backed answers</li>
+            </ul>
+            <div class="highlight">
+                Result: Higher quality, more reliable responses
+            </div>
+            <div class="slide-number">8 / 30</div>
+        </div>
+
+        <!-- Slide 9: GraphRAG -->
+        <div class="slide" data-notes="GraphRAG enhances traditional vector search by incorporating structured knowledge graphs, achieving up to 99% precision in some applications.">
+            <h2>GraphRAG: Adding Structure to Knowledge</h2>
+            <div class="two-column">
+                <div class="column info">
+                    <h3>Traditional RAG</h3>
+                    <div class="flowchart">Documents
+    ↓
+Chunks → Vectors
+    ↓
+Similarity Search</div>
+                    <p style="text-align: center; font-weight: 600; color: #ff9800; margin-top: 20px;">85% accuracy</p>
+                </div>
+                <div class="column success">
+                    <h3>GraphRAG</h3>
+                    <div class="flowchart">Documents
+    ↓
+Knowledge Graph
+    + Vectors
+    ↓
+Structured Search</div>
+                    <p style="text-align: center; font-weight: 600; color: #4caf50; margin-top: 20px;">99% accuracy</p>
+                </div>
+            </div>
+            <h3>Key Advantages</h3>
+            <ul>
+                <li>Combines vector search with knowledge graphs</li>
+                <li>Understands relationships between concepts</li>
+                <li>Brings logic and taxonomy to retrieval</li>
+            </ul>
+            <div class="slide-number">9 / 30</div>
+        </div>
+
+        <!-- Slide 10: Agentic RAG -->
+        <div class="slide" data-notes="Agentic RAG uses AI to intelligently break down complex questions into sub-queries, retrieve information iteratively, and synthesize comprehensive answers.">
+            <h2>Agentic RAG: Intelligent Query Decomposition</h2>
+            <div class="flowchart" style="font-size: 14px;">Complex Question: "Why did Q3 sales decline?"
+            ↓
+Agent Breaks Down:
+  → What were Q3 sales figures?
+  → What were Q2 sales for comparison?
+  → What external market factors existed?
+  → Which product lines were affected?
+            ↓
+Multiple Targeted Retrievals
+            ↓
+Synthesized, Comprehensive Answer</div>
+            <div class="highlight" style="margin-top: 20px;">
+                Handles multi-hop, complex queries that traditional RAG cannot
+            </div>
+            <div class="slide-number">10 / 30</div>
+        </div>
+
+        <!-- Slide 11: Chunking Fundamentals -->
+        <div class="slide" data-notes="Chunking isn't just technical detail—it's the difference between a RAG system that delights users and one that frustrates them.">
+            <h2>Why Chunking Matters</h2>
+            <div class="highlight" style="font-size: 48px; margin: 40px 0;">
+                UP TO 9% PERFORMANCE DIFFERENCE
+            </div>
+            <h3>The Challenge</h3>
+            <ul>
+                <li><strong>Embedding models:</strong> Limited to 512-8192 tokens</li>
+                <li><strong>Documents:</strong> Often millions of tokens</li>
+                <li><strong>Solution:</strong> Smart chunking strategies</li>
+            </ul>
+            <h3>Impact Areas</h3>
+            <div class="grid-3">
+                <div class="card"><div class="icon">📊</div><p>Retrieval Accuracy</p></div>
+                <div class="card"><div class="icon">🎯</div><p>Answer Precision</p></div>
+                <div class="card"><div class="icon">💰</div><p>Processing Costs</p></div>
+            </div>
+            <div class="slide-number">11 / 30</div>
+        </div>
+
+        <!-- Slide 12: Chunking Strategies Overview -->
+        <div class="slide" data-notes="There are four main chunking strategies, each with different trade-offs between simplicity, performance, and cost.">
+            <h2>Four Main Approaches</h2>
+            <div class="two-column">
+                <div class="column info">
+                    <h3>1. Fixed-Size</h3>
+                    <p>Split by character/token count</p>
+                    <p>Simple, predictable</p>
+                    <p class="star-rating">⭐⭐⭐ Performance</p>
+                </div>
+                <div class="column success">
+                    <h3>2. Recursive</h3>
+                    <p>Hierarchical splitting</p>
+                    <p>Structure-aware</p>
+                    <p class="star-rating">⭐⭐⭐⭐ Performance (Recommended)</p>
+                </div>
+            </div>
+            <div class="two-column" style="margin-top: 20px;">
+                <div class="column success">
+                    <h3>3. Semantic</h3>
+                    <p>Topic-based splitting</p>
+                    <p>Embedding similarity</p>
+                    <p class="star-rating">⭐⭐⭐⭐⭐ Performance</p>
+                </div>
+                <div class="column success">
+                    <h3>4. Context-Aware</h3>
+                    <p>Format-specific logic</p>
+                    <p>Code, markdown, tables</p>
+                    <p class="star-rating">⭐⭐⭐⭐⭐ Performance</p>
+                </div>
+            </div>
+            <div class="slide-number">12 / 30</div>
+        </div>
+
+        <!-- Slide 13: Fixed-Size Chunking -->
+        <div class="slide" data-notes="Fixed-size chunking is the simplest approach—great for getting started quickly, but not optimal for final production systems.">
+            <h2>Fixed-Size: Simple and Fast</h2>
+            <div class="flowchart">Document (5000 tokens)
+        ↓
+[500 tokens] [500 tokens] [500 tokens] ...</div>
+            <div class="two-column">
+                <div class="column success">
+                    <h3>✅ Pros</h3>
+                    <ul style="font-size: 16px;">
+                        <li>Easiest to implement</li>
+                        <li>Predictable chunk sizes</li>
+                        <li>Fastest processing</li>
+                        <li>Low cost</li>
+                    </ul>
+                </div>
+                <div class="column error">
+                    <h3>❌ Cons</h3>
+                    <ul style="font-size: 16px;">
+                        <li>Ignores structure</li>
+                        <li>May split mid-sentence</li>
+                        <li>Lower accuracy</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="highlight" style="margin-top: 20px;">
+                Best For: Prototyping, simple content, high-volume processing
+            </div>
+            <div class="slide-number">13 / 30</div>
+        </div>
+
+        <!-- Slide 14: Recursive Chunking -->
+        <div class="slide" data-notes="Recursive chunking is the gold standard default. It respects natural document structure while being relatively simple to implement.">
+            <h2>Recursive: The Reliable Default</h2>
+            <div class="flowchart" style="font-size: 14px;">1. Try splitting by paragraphs (\n\n)
+    ↓ If too large
+2. Try splitting by sentences (.)
+    ↓ If too large
+3. Try splitting by words ( )
+    ↓
+Chunks that respect natural boundaries</div>
+            <h3>✅ Pros</h3>
+            <ul>
+                <li>Structure-aware</li>
+                <li>Industry standard</li>
+                <li>Good balance of quality & simplicity</li>
+                <li>Works for 80% of use cases</li>
+            </ul>
+            <div class="highlight" style="margin-top: 20px;">
+                ⭐ START HERE: Recursive chunking is recommended as your baseline
+            </div>
+            <div class="slide-number">14 / 30</div>
+        </div>
+
+        <!-- Slide 15: Semantic Chunking -->
+        <div class="slide" data-notes="Semantic chunking delivers the best retrieval quality by grouping content by meaning, but at a higher computational cost.">
+            <h2>Semantic: Topic-Based Intelligence</h2>
+            <div class="flowchart" style="font-size: 14px;">Sentence 1 → Embedding
+Sentence 2 → Embedding → Calculate Similarity
+Sentence 3 → Embedding → Calculate Similarity
+
+When similarity drops → New chunk boundary</div>
+            <div class="two-column">
+                <div class="column success">
+                    <h3>✅ Pros</h3>
+                    <ul style="font-size: 16px;">
+                        <li>Topic coherence</li>
+                        <li>Best retrieval (2-9% better)</li>
+                        <li>Context preservation</li>
+                    </ul>
+                </div>
+                <div class="column warning">
+                    <h3>⚠️ Cons</h3>
+                    <ul style="font-size: 16px;">
+                        <li>Computationally expensive</li>
+                        <li>Higher API costs</li>
+                        <li>Slower processing</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="highlight" style="margin-top: 20px;">
+                Best For: High-accuracy requirements, research papers, complex documents
+            </div>
+            <div class="slide-number">15 / 30</div>
+        </div>
+
+        <!-- Slide 16: Context-Aware Chunking -->
+        <div class="slide" data-notes="Context-aware chunking adapts to document format—essential for mixed-content knowledge bases with code, docs, and data.">
+            <h2>Context-Aware: Format-Specific Strategies</h2>
+            <h3>Examples</h3>
+            <div class="grid-3">
+                <div class="column info">
+                    <h3 style="font-size: 18px;">Markdown</h3>
+                    <p style="font-size: 14px;">Split by headers</p>
+                    <div class="code-block" style="font-size: 12px; padding: 10px;"># Header 1
+## Header 2
+Content...</div>
+                </div>
+                <div class="column info">
+                    <h3 style="font-size: 18px;">Code</h3>
+                    <p style="font-size: 14px;">Split by functions/classes</p>
+                    <div class="code-block" style="font-size: 12px; padding: 10px;">class Example:
+  def method():
+    pass</div>
+                </div>
+                <div class="column info">
+                    <h3 style="font-size: 18px;">Tables</h3>
+                    <p style="font-size: 14px;">Keep intact</p>
+                    <div class="code-block" style="font-size: 12px; padding: 10px;">| Col 1 | Col 2 |
+| Data  | Data  |</div>
+                </div>
+            </div>
+            <div class="highlight" style="margin-top: 20px;">
+                Best For: Multi-format repositories, technical documentation, code search
+            </div>
+            <div class="slide-number">16 / 30</div>
+        </div>
+
+        <!-- Slide 17: Chunking Comparison -->
+        <div class="slide" data-notes="Use this matrix to choose your strategy. When in doubt, start with recursive and optimize from there.">
+            <h2>Choosing the Right Strategy</h2>
+            <table class="comparison-table">
+                <tr>
+                    <th>Strategy</th>
+                    <th>Complexity</th>
+                    <th>Performance</th>
+                    <th>Cost</th>
+                    <th>Best For</th>
+                </tr>
+                <tr>
+                    <td><strong>Fixed</strong></td>
+                    <td>⭐</td>
+                    <td>⭐⭐⭐</td>
+                    <td>⭐⭐⭐⭐⭐</td>
+                    <td>Prototyping</td>
+                </tr>
+                <tr>
+                    <td><strong>Recursive</strong></td>
+                    <td>⭐⭐</td>
+                    <td>⭐⭐⭐⭐</td>
+                    <td>⭐⭐⭐⭐</td>
+                    <td>General use ✓</td>
+                </tr>
+                <tr>
+                    <td><strong>Semantic</strong></td>
+                    <td>⭐⭐⭐⭐</td>
+                    <td>⭐⭐⭐⭐⭐</td>
+                    <td>⭐⭐</td>
+                    <td>High accuracy</td>
+                </tr>
+                <tr>
+                    <td><strong>Context</strong></td>
+                    <td>⭐⭐⭐⭐⭐</td>
+                    <td>⭐⭐⭐⭐⭐</td>
+                    <td>⭐⭐⭐</td>
+                    <td>Code/docs</td>
+                </tr>
+            </table>
+            <div class="flowchart" style="margin-top: 20px; font-size: 14px;">Quick prototype? → Fixed-Size
+Specific format? → Context-Aware
+Highest accuracy? → Semantic
+Default choice? → Recursive ✓</div>
+            <div class="slide-number">17 / 30</div>
+        </div>
+
+        <!-- Slide 18: Best Practices -->
+        <div class="slide" data-notes="Follow these five best practices to ensure your chunking strategy delivers optimal results.">
+            <h2>Chunking Best Practices</h2>
+            <ol style="font-size: 18px;">
+                <li><strong>Start with Recursive</strong> (512 tokens, 20% overlap)
+                    <ul><li>Establish baseline, optimize later if needed</li></ul>
+                </li>
+                <li><strong>Align Chunk Size with Embedding Model</strong>
+                    <ul><li>text-embedding-3-large: 256-512 tokens</li></ul>
+                </li>
+                <li><strong>Use Overlap</strong> (10-20%)
+                    <ul><li>Prevents information loss at boundaries</li></ul>
+                </li>
+                <li><strong>Add Rich Metadata</strong>
+                    <ul><li>Source, date, author, category</li></ul>
+                </li>
+                <li><strong>Test and Measure</strong>
+                    <ul><li>A/B test different strategies</li></ul>
+                </li>
+            </ol>
+            <div class="slide-number">18 / 30</div>
+        </div>
+
+        <!-- Slide 19: Azure OpenAI -->
+        <div class="slide" data-notes="Azure OpenAI provides enterprise-grade access to the latest models with the security and compliance enterprises require.">
+            <h2>Azure OpenAI: Enterprise-Grade RAG</h2>
+            <div class="two-column">
+                <div class="card">
+                    <h3>GPT-4o</h3>
+                    <p>128K context</p>
+                    <p>Best reasoning</p>
+                    <p style="font-size: 14px;">$2.50/$10 per 1M tokens</p>
+                </div>
+                <div class="card">
+                    <h3>GPT-4o-mini</h3>
+                    <p>128K context</p>
+                    <p>Fast & economical</p>
+                    <p style="font-size: 14px;">$0.15/$0.60 per 1M tokens</p>
+                </div>
+            </div>
+            <div class="two-column" style="margin-top: 20px;">
+                <div class="card">
+                    <h3>text-embedding-3-large</h3>
+                    <p>3072 dimensions</p>
+                    <p>Best quality</p>
+                    <p style="font-size: 14px;">$0.13 per 1M tokens</p>
+                </div>
+                <div class="card">
+                    <h3>text-embedding-3-small</h3>
+                    <p>1536 dimensions</p>
+                    <p>Cost-effective</p>
+                    <p style="font-size: 14px;">$0.02 per 1M tokens</p>
+                </div>
+            </div>
+            <h3 style="margin-top: 20px;">Key Features</h3>
+            <ul>
+                <li>Enterprise security & compliance</li>
+                <li>Hybrid search with Azure AI Search</li>
+                <li>Semantic ranking</li>
+            </ul>
+            <div class="slide-number">19 / 30</div>
+        </div>
+
+        <!-- Slide 20: Claude Models -->
+        <div class="slide" data-notes="Azure AI Foundry uniquely offers both Claude and GPT models, letting you choose the best model for each task.">
+            <h2>Claude in Azure AI Foundry</h2>
+            <div class="highlight">
+                Azure is the ONLY cloud offering both Claude and GPT models
+            </div>
+            <table style="margin-top: 20px;">
+                <tr>
+                    <th>Model</th>
+                    <th>Context</th>
+                    <th>Best For</th>
+                    <th>Pricing</th>
+                </tr>
+                <tr>
+                    <td><strong>Sonnet 4.5</strong></td>
+                    <td>200K</td>
+                    <td>Balanced performance</td>
+                    <td>$3/$15 per 1M</td>
+                </tr>
+                <tr>
+                    <td><strong>Haiku 4.5</strong></td>
+                    <td>200K</td>
+                    <td>Fastest, economical</td>
+                    <td>$0.25/$1.25 per 1M</td>
+                </tr>
+                <tr>
+                    <td><strong>Opus 4.1</strong></td>
+                    <td>200K</td>
+                    <td>Maximum capability</td>
+                    <td>$15/$75 per 1M</td>
+                </tr>
+            </table>
+            <h3>Advantages</h3>
+            <ul>
+                <li>200K context window (vs 128K for GPT)</li>
+                <li>Superior code understanding</li>
+                <li>Excellent multilingual support</li>
+            </ul>
+            <div class="slide-number">20 / 30</div>
+        </div>
+
+        <!-- Slide 21: Azure AI Foundry IQ -->
+        <div class="slide" data-notes="Foundry IQ represents the future of RAG—moving from simple lookup to intelligent, iterative reasoning over multiple sources.">
+            <h2>Next-Gen RAG with Foundry IQ</h2>
+            <div class="two-column">
+                <div class="column info">
+                    <h3>Traditional RAG</h3>
+                    <div class="flowchart" style="font-size: 12px;">Query
+  ↓
+Single Retrieval
+  ↓
+Generate</div>
+                </div>
+                <div class="column success">
+                    <h3>Foundry IQ Agentic RAG</h3>
+                    <div class="flowchart" style="font-size: 12px;">Query
+  ↓
+Agent Analyzes
+  ↓
+Multi-Round
+Retrieval
+  ↓
+Reflection &
+Refinement
+  ↓
+Answer</div>
+                </div>
+            </div>
+            <h3>Key Features</h3>
+            <ul>
+                <li>🤖 Agentic Retrieval: Intelligent, multi-step</li>
+                <li>🔗 Unified API: Single entry point for multiple sources</li>
+                <li>🔒 Permission-Aware: Respects user access rights</li>
+                <li>🎯 Auto Source Selection: Intelligently picks sources</li>
+            </ul>
+            <div class="slide-number">21 / 30</div>
+        </div>
+
+        <!-- Slide 22: Multi-Model Strategy -->
+        <div class="slide" data-notes="Don't use one model for everything. Route queries intelligently based on complexity, content type, and requirements.">
+            <h2>Intelligent Model Routing</h2>
+            <div class="flowchart" style="font-size: 14px;">Incoming Query
+       ↓
+  Analyze Query
+       ↓
+    ┌──┴──┬─────────┬──────────┐
+    ↓     ↓         ↓          ↓
+ Simple  Code   Long      Complex
+         Heavy  Context   Reasoning
+    ↓     ↓         ↓          ↓
+GPT-4o  Claude  Claude    GPT-4o
+ mini   Sonnet  Haiku    /Opus</div>
+            <h3>Cost Optimization</h3>
+            <table>
+                <tr>
+                    <th>Use Case</th>
+                    <th>Volume</th>
+                    <th>Model</th>
+                    <th>Cost/1K Queries</th>
+                </tr>
+                <tr>
+                    <td>Simple FAQ</td>
+                    <td>High</td>
+                    <td>GPT-4o-mini</td>
+                    <td>$2-5</td>
+                </tr>
+                <tr>
+                    <td>Code Q&A</td>
+                    <td>Medium</td>
+                    <td>Claude Sonnet</td>
+                    <td>$15-30</td>
+                </tr>
+                <tr>
+                    <td>Research</td>
+                    <td>Low</td>
+                    <td>GPT-4o/Opus</td>
+                    <td>$50-100</td>
+                </tr>
+            </table>
+            <div class="slide-number">22 / 30</div>
+        </div>
+
+        <!-- Slide 23: Azure Architecture -->
+        <div class="slide" data-notes="This is a complete production RAG stack on Azure, leveraging best-of-breed components for enterprise-grade performance.">
+            <h2>Complete Azure RAG Architecture</h2>
+            <div class="flowchart" style="font-size: 12px;">┌────────────────────────────────────┐
+│        Data Sources                │
+│  SharePoint • DBs • Files • APIs   │
+└──────────────┬─────────────────────┘
+               ↓
+┌──────────────┴─────────────────────┐
+│   Document Processing & Chunking   │
+└──────────────┬─────────────────────┘
+               ↓
+┌──────────────┴─────────────────────┐
+│   Embedding (text-embedding-3-lg)  │
+└──────────────┬─────────────────────┘
+               ↓
+┌──────────────┴─────────────────────┐
+│   Azure AI Search (Hybrid Search)  │
+└──────────────┬─────────────────────┘
+               ↓
+┌──────────────┴─────────────────────┐
+│    Intelligent Model Routing       │
+│  GPT-4o | Claude Sonnet | Mini    │
+└──────────────┬─────────────────────┘
+               ↓
+┌──────────────┴─────────────────────┐
+│       Response + Citations         │
+└────────────────────────────────────┘</div>
+            <div class="slide-number">23 / 30</div>
+        </div>
+
+        <!-- Slide 24: Implementation Roadmap -->
+        <div class="slide" data-notes="Follow this phased approach to deploy RAG systematically—from foundation to production-ready system in 8 weeks.">
+            <h2>Four-Phase Deployment Strategy</h2>
+            <div class="two-column">
+                <div class="column info">
+                    <h3>Phase 1: Foundation (Weeks 1-2)</h3>
+                    <ul style="font-size: 14px;">
+                        <li>✓ Set up Azure AI Search</li>
+                        <li>✓ Configure embedding models</li>
+                        <li>✓ Implement recursive chunking</li>
+                        <li>✓ Test basic retrieval</li>
+                    </ul>
+                </div>
+                <div class="column info">
+                    <h3>Phase 2: Optimization (Weeks 3-4)</h3>
+                    <ul style="font-size: 14px;">
+                        <li>✓ Experiment with chunking</li>
+                        <li>✓ Enable hybrid search</li>
+                        <li>✓ Add semantic ranking</li>
+                        <li>✓ Optimize chunk sizes</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="two-column" style="margin-top: 20px;">
+                <div class="column success">
+                    <h3>Phase 3: Advanced (Weeks 5-6)</h3>
+                    <ul style="font-size: 14px;">
+                        <li>✓ Multi-model routing</li>
+                        <li>✓ Query decomposition</li>
+                        <li>✓ Multiple sources</li>
+                        <li>✓ Add reranking</li>
+                    </ul>
+                </div>
+                <div class="column success">
+                    <h3>Phase 4: Production (Weeks 7-8)</h3>
+                    <ul style="font-size: 14px;">
+                        <li>✓ Security hardening</li>
+                        <li>✓ Performance monitoring</li>
+                        <li>✓ Cost optimization</li>
+                        <li>✓ Scale testing</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="slide-number">24 / 30</div>
+        </div>
+
+        <!-- Slide 25: Best Practices -->
+        <div class="slide" data-notes="These ten practices, drawn from successful enterprise RAG deployments, will help you avoid common pitfalls.">
+            <h2>Top 10 RAG Best Practices</h2>
+            <div class="two-column">
+                <div class="column info">
+                    <h3>Architecture</h3>
+                    <ol style="font-size: 16px;">
+                        <li>Start with recursive chunking</li>
+                        <li>Use hybrid search</li>
+                        <li>Enable semantic ranking</li>
+                        <li>Add rich metadata</li>
+                        <li>Implement model routing</li>
+                    </ol>
+                </div>
+                <div class="column success">
+                    <h3>Operations</h3>
+                    <ol start="6" style="font-size: 16px;">
+                        <li>Use managed identity</li>
+                        <li>Monitor costs</li>
+                        <li>Implement caching</li>
+                        <li>A/B test configurations</li>
+                        <li>Collect user feedback</li>
+                    </ol>
+                </div>
+            </div>
+            <div class="highlight" style="margin-top: 30px;">
+                Golden Rule: Measure everything, optimize iteratively
+            </div>
+            <div class="slide-number">25 / 30</div>
+        </div>
+
+        <!-- Slide 26: Common Pitfalls -->
+        <div class="slide" data-notes="Avoid these common mistakes that can derail RAG projects. Learning from others' experience accelerates your success.">
+            <h2>Common Pitfalls to Avoid</h2>
+            <div class="two-column">
+                <div class="column error">
+                    <h3>❌ Don't</h3>
+                    <ul style="font-size: 16px;">
+                        <li>Use fixed-size for code</li>
+                        <li>Ignore chunk overlap</li>
+                        <li>Skip testing retrieval</li>
+                        <li>Use same strategy everywhere</li>
+                        <li>Forget metadata</li>
+                        <li>Choose models by brand</li>
+                        <li>Skip monitoring</li>
+                    </ul>
+                </div>
+                <div class="column success">
+                    <h3>✅ Do</h3>
+                    <ul style="font-size: 16px;">
+                        <li>Match chunking to format</li>
+                        <li>Use 10-20% overlap</li>
+                        <li>A/B test configurations</li>
+                        <li>Adapt to document type</li>
+                        <li>Enrich with source info</li>
+                        <li>Route to optimal models</li>
+                        <li>Track metrics</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="slide-number">26 / 30</div>
+        </div>
+
+        <!-- Slide 27: Cost Optimization -->
+        <div class="slide" data-notes="Strategic optimization can reduce RAG costs by 90% without sacrificing quality—critical for scaling to enterprise volumes.">
+            <h2>Making RAG Affordable at Scale</h2>
+            <h3>Cost Levers</h3>
+            <ol style="font-size: 18px;">
+                <li><strong>Model Selection</strong>: Use GPT-4o-mini for simple queries (90% cost reduction)</li>
+                <li><strong>Embedding Optimization</strong>: text-embedding-3-small (85% savings)</li>
+                <li><strong>Caching</strong>: Cache embeddings and frequent queries</li>
+                <li><strong>Smart Retrieval</strong>: Optimize top_k for better precision</li>
+                <li><strong>Right-Sizing</strong>: Match chunk size to actual needs</li>
+            </ol>
+            <div class="highlight" style="margin-top: 30px;">
+                Example: $5,000/month → $500/month = 90% Savings
+            </div>
+            <div class="slide-number">27 / 30</div>
+        </div>
+
+        <!-- Slide 28: Success Metrics -->
+        <div class="slide" data-notes="Define clear success metrics across quality, satisfaction, performance, and cost. Track them religiously and optimize iteratively.">
+            <h2>Measuring RAG Performance</h2>
+            <div class="two-column">
+                <div class="column info">
+                    <h3>Retrieval Quality</h3>
+                    <ul style="font-size: 16px;">
+                        <li>Precision @ K: 0.85</li>
+                        <li>Recall @ K: 0.78</li>
+                        <li>MRR: 0.82</li>
+                    </ul>
+                </div>
+                <div class="column success">
+                    <h3>User Satisfaction</h3>
+                    <ul style="font-size: 16px;">
+                        <li>Answer Relevance: 4.2/5</li>
+                        <li>Source Quality: 4.5/5</li>
+                        <li>Overall: 85%</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="two-column" style="margin-top: 20px;">
+                <div class="column info">
+                    <h3>Performance</h3>
+                    <ul style="font-size: 16px;">
+                        <li>Avg Latency: 1.2s</li>
+                        <li>P95 Latency: 2.8s</li>
+                        <li>Uptime: 99.9%</li>
+                    </ul>
+                </div>
+                <div class="column success">
+                    <h3>Cost Efficiency</h3>
+                    <ul style="font-size: 16px;">
+                        <li>Cost/Query: $0.05</li>
+                        <li>Tokens/Query: 2,500</li>
+                        <li>Monthly: $2,500</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="slide-number">28 / 30</div>
+        </div>
+
+        <!-- Slide 29: Future of RAG -->
+        <div class="slide" data-notes="RAG is rapidly evolving. Agentic, multimodal, real-time systems are already emerging. Stay current to maintain competitive advantage.">
+            <h2>What's Next for RAG in 2025 and Beyond</h2>
+            <h3>Emerging Trends</h3>
+            <ol style="font-size: 18px;">
+                <li><strong>Agentic RAG Becomes Standard</strong>
+                    <ul><li>Multi-step reasoning the norm</li></ul>
+                </li>
+                <li><strong>Multimodal RAG</strong>
+                    <ul><li>Images, videos, audio in knowledge bases</li></ul>
+                </li>
+                <li><strong>Real-Time RAG</strong>
+                    <ul><li>Sub-100ms latency</li></ul>
+                </li>
+                <li><strong>Personalized RAG</strong>
+                    <ul><li>User-specific knowledge graphs</li></ul>
+                </li>
+                <li><strong>Federated RAG</strong>
+                    <ul><li>Cross-organization knowledge sharing</li></ul>
+                </li>
+            </ol>
+            <div class="highlight" style="margin-top: 30px;">
+                The Future is Bright: RAG is core to enterprise AI strategy
+            </div>
+            <div class="slide-number">29 / 30</div>
+        </div>
+
+        <!-- Slide 30: Q&A -->
+        <div class="slide" data-notes="Thank you for your attention! I'm happy to answer questions and discuss how RAG can transform your AI applications.">
+            <div class="title-slide">
+                <h1>Thank You!</h1>
+                <h2 style="color: #5E2D91;">Questions?</h2>
+                <h3 style="margin-top: 40px;">Key Resources</h3>
+                <ul style="text-align: left; max-width: 600px; margin: 20px auto; font-size: 18px;">
+                    <li>📚 Azure OpenAI Documentation</li>
+                    <li>📚 Azure AI Foundry Documentation</li>
+                    <li>🔗 GitHub: Azure/GPT-RAG</li>
+                    <li>🔗 LangChain RAG Guides</li>
+                    <li>👥 Azure AI Community</li>
+                </ul>
+                <div class="highlight" style="margin-top: 40px; font-size: 20px;">
+                    Ready to build? Start with recursive chunking + Azure OpenAI!
+                </div>
+            </div>
+            <div class="slide-number">30 / 30</div>
+        </div>
+    </div>
+
+    <!-- Navigation Controls -->
+    <div class="navigation">
+        <button class="nav-button" id="prevBtn" onclick="changeSlide(-1)">← Previous</button>
+        <button class="nav-button" id="nextBtn" onclick="changeSlide(1)">Next →</button>
+    </div>
+
+    <!-- Speaker Notes -->
+    <div class="speaker-notes" id="speakerNotes"></div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+
+        function showSlide(n) {
+            if (n >= totalSlides) {
+                currentSlide = totalSlides - 1;
+            } else if (n < 0) {
+                currentSlide = 0;
+            } else {
+                currentSlide = n;
+            }
+
+            // Hide all slides
+            slides.forEach(slide => {
+                slide.classList.remove('active');
+            });
+
+            // Show current slide
+            slides[currentSlide].classList.add('active');
+
+            // Update navigation buttons
+            document.getElementById('prevBtn').disabled = currentSlide === 0;
+            document.getElementById('nextBtn').disabled = currentSlide === totalSlides - 1;
+
+            // Update progress bar
+            const progress = ((currentSlide + 1) / totalSlides) * 100;
+            document.getElementById('progressBar').style.width = progress + '%';
+
+            // Update speaker notes
+            const notes = slides[currentSlide].getAttribute('data-notes');
+            document.getElementById('speakerNotes').textContent = notes || '';
+        }
+
+        function changeSlide(direction) {
+            showSlide(currentSlide + direction);
+        }
+
+        function toggleNotes() {
+            document.getElementById('speakerNotes').classList.toggle('visible');
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') {
+                changeSlide(-1);
+            } else if (e.key === 'ArrowRight' || e.key === ' ') {
+                e.preventDefault();
+                changeSlide(1);
+            } else if (e.key === 'n' || e.key === 'N') {
+                toggleNotes();
+            } else if (e.key === 'Home') {
+                showSlide(0);
+            } else if (e.key === 'End') {
+                showSlide(totalSlides - 1);
+            }
+        });
+
+        // Initialize
+        showSlide(0);
+
+        // Full screen on double click
+        document.addEventListener('dblclick', () => {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        });
+    </script>
+</body>
+</html>
